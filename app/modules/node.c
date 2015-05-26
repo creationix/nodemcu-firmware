@@ -25,6 +25,8 @@
 #include "flash_fs.h"
 #include "user_version.h"
 
+#include "ssl/ssl_crypto.h"
+
 #define CPU80MHZ 80
 #define CPU160MHZ 160
 
@@ -414,11 +416,24 @@ static int node_setcpufreq(lua_State* L)
   return 1;
 }
 
+static int node_sha1(lua_State* L) {
+  SHA1_CTX ctx;
+  int len;
+  uint8_t digest[20];
+  const char* msg = luaL_checklstring(L, 1, &len);
+  SHA1_Init(&ctx);
+  SHA1_Update(&ctx, msg, len);
+  SHA1_Final(digest, &ctx);
+  lua_pushlstring(L, digest, 20);
+  return 1;
+}
+
 // Module function map
 #define MIN_OPT_LEVEL 2
 #include "lrodefs.h"
 const LUA_REG_TYPE node_map[] =
 {
+  { LSTRKEY( "sha1" ), LFUNCVAL( node_sha1 ) },
   { LSTRKEY( "restart" ), LFUNCVAL( node_restart ) },
   { LSTRKEY( "dsleep" ), LFUNCVAL( node_deepsleep ) },
   { LSTRKEY( "info" ), LFUNCVAL( node_info ) },
@@ -432,7 +447,7 @@ const LUA_REG_TYPE node_map[] =
 #endif
   { LSTRKEY( "input" ), LFUNCVAL( node_input ) },
   { LSTRKEY( "output" ), LFUNCVAL( node_output ) },
-// Moved to adc module, use adc.readvdd33()  
+// Moved to adc module, use adc.readvdd33()
 // { LSTRKEY( "readvdd33" ), LFUNCVAL( node_readvdd33) },
   { LSTRKEY( "compile" ), LFUNCVAL( node_compile) },
   { LSTRKEY( "CPU80MHZ" ), LNUMVAL( CPU80MHZ ) },
