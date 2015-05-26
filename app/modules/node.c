@@ -428,12 +428,34 @@ static int node_sha1(lua_State* L) {
   return 1;
 }
 
+static const char* bytes64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+static int node_base64(lua_State* L) {
+  int len;
+  const char* msg = luaL_checklstring(L, 1, &len);
+  int blen = (len + 2) / 3 * 4;
+  char* out = (char*)c_malloc(blen);
+  int j = 0, i;
+  for (i = 0; i < len; i += 3) {
+    int a = msg[i];
+    int b = (i + 1 < len) ? msg[i + 1] : 0;
+    int c = (i + 2 < len) ? msg[i + 2] : 0;
+    out[j++] = bytes64[a >> 2];
+    out[j++] = bytes64[((a & 3) << 4) | (b >> 4)];
+    out[j++] = (i + 1 < len) ? bytes64[((b & 15) << 2) | (c >> 6)] : 61;
+    out[j++] = (i + 2 < len) ? bytes64[(c & 63)] : 61;
+  }
+  lua_pushlstring(L, out, j);
+  c_free(out);
+  return 1;
+}
+
 // Module function map
 #define MIN_OPT_LEVEL 2
 #include "lrodefs.h"
 const LUA_REG_TYPE node_map[] =
 {
   { LSTRKEY( "sha1" ), LFUNCVAL( node_sha1 ) },
+  { LSTRKEY( "base64" ), LFUNCVAL( node_base64 ) },
   { LSTRKEY( "restart" ), LFUNCVAL( node_restart ) },
   { LSTRKEY( "dsleep" ), LFUNCVAL( node_deepsleep ) },
   { LSTRKEY( "info" ), LFUNCVAL( node_info ) },
