@@ -25,7 +25,6 @@
 #include "flash_fs.h"
 #include "user_version.h"
 
-#include "ssl/ssl_crypto.h"
 
 #define CPU80MHZ 80
 #define CPU160MHZ 160
@@ -417,13 +416,19 @@ static int node_setcpufreq(lua_State* L)
 }
 
 static int node_sha1(lua_State* L) {
-  SHA1_CTX ctx;
-  int len;
+  // We only need a data buffer large enough to match SHA1_CTX in the rom.
+  // I *think* this is a 92-byte netbsd struct.
+  uint8_t ctx[100];
   uint8_t digest[20];
+  // Read the string from lua (with length)
+  int len;
   const char* msg = luaL_checklstring(L, 1, &len);
-  SHA1_Init(&ctx);
-  SHA1_Update(&ctx, msg, len);
-  SHA1_Final(digest, &ctx);
+  // Use the SHA* functions in the rom
+  SHA1Init(ctx);
+  SHA1Update(ctx, msg, len);
+  SHA1Final(digest, ctx);
+
+  // Push the result as a lua string
   lua_pushlstring(L, digest, 20);
   return 1;
 }
